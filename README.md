@@ -3,7 +3,7 @@ Plugin for incremental games that needs to deal with massive numbers. Ported fro
 
 ## What even is this???
 In Godot, there are 2 types to represent numbers:
-- `int` can store numbers up to 2⁶³ - 1 but doesn't work on fractionals
+- `int` can store numbers up to 2^63 - 1 but doesn't work on fractionals
 - `float` goes up to 1.8e308, but loses precision on higher numbers
 **Solution:** just combine them
 
@@ -44,5 +44,7 @@ i dug a bit and found a couple addons/scripts that do a similar thing
 - [break-nihility](https://github.com/peachey2k2/break-nihility) - obama medal meme
 - [GodotBigNumberClass](https://github.com/ChronoDK/GodotBigNumberClass) - same idea but in GDScript, also can do cool formatting
 - [numberclass-gds](https://github.com/SWCreeperKing/numberclass-gds) - smaller plugin, less bloated
+
 Also **numberclass-gds** is a GDScript port of [NumberClass](https://github.com/SWCreeperKing/NumberClass). I did try to patch it to work with Godot but it performs worse for most things due to GDScript-C# bridge.
+
 ![image](images/benchmark.png)
