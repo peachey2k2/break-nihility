@@ -14,11 +14,6 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level) {
 		return;
 	}
 	GDREGISTER_CLASS(Decimal);
-
-	// GDREGISTER_RUNTIME_CLASS(Decimal);
-	// Decimal::create_singleton();
-	// Engine::get_singleton()->register_singleton(StringName("FunctionLibrary"), Decimal::get_singleton());
-
 }
 
 void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {

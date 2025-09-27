@@ -32,30 +32,34 @@ class Decimal : public Object {
 protected:
 	static auto _bind_methods() -> void;
 
-public:
-	// static auto create_singleton() -> void;
-	// static auto get_singleton() -> void;
-	// static auto create_singleton() -> void;
+// unions are dumb on android so...
+#ifdef __ANDROID__
+	#define DECIMAL_DECL_CONST inline
+#else
+	#define DECIMAL_DECL_CONST constexpr const
+#endif
 
-	static constexpr const auto DECIMAL_ZERO = DecimalData { 0.0, 0 };
-	static constexpr const auto DECIMAL_ZERO_NEG = DecimalData { -0.0, 0 };
+private:
+	static DECIMAL_DECL_CONST auto DECIMAL_ZERO = DecimalData { 0.0, 0 };
+	static DECIMAL_DECL_CONST auto DECIMAL_ZERO_NEG = DecimalData { -0.0, 0 };
 
-	static constexpr const auto DECIMAL_ONE = DecimalData { 1.0, 0 };
-	static constexpr const auto DECIMAL_ONE_NEG = DecimalData { -1.0, 0 };
+	static DECIMAL_DECL_CONST auto DECIMAL_ONE = DecimalData { 1.0, 0 };
+	static DECIMAL_DECL_CONST auto DECIMAL_ONE_NEG = DecimalData { -1.0, 0 };
 
-	static constexpr const auto DECIMAL_INF = DecimalData {
+	static DECIMAL_DECL_CONST auto DECIMAL_INF = DecimalData {
 		std::numeric_limits<double>::infinity(), 0
 	};
 
-	static constexpr const auto DECIMAL_INF_NEG = DecimalData {
+	static DECIMAL_DECL_CONST auto DECIMAL_INF_NEG = DecimalData {
 		-std::numeric_limits<double>::infinity(), 0
 	};
 
-	static constexpr const auto DECIMAL_NAN = DecimalData {
+	static DECIMAL_DECL_CONST auto DECIMAL_NAN = DecimalData {
 		std::numeric_limits<double>::signaling_NaN(), 0
 	};
 
 
+public:
 	static auto from_parts(const double layer, const int64_t exponent) -> Vector4i;
 	static auto from_parts_normalize(const double layer, const int64_t exponent) -> Vector4i;
 	static auto from_float(double num) -> Vector4i;
@@ -69,8 +73,7 @@ public:
 	Decimal();
 	~Decimal() = default;
 
-	static auto into_float(const Vector4i decimal) -> std::optional<double>;
-	static auto into_float_wrapped(const Vector4i decimal) -> Variant;
+	static auto into_float(const Vector4i decimal) -> double;
 	static auto to_string(const Vector4i decimal) -> String;
 	static auto to_exponential(const Vector4i decimal, const int64_t places = -1) -> String;
 
