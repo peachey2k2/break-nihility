@@ -77,7 +77,7 @@ auto Decimal::_bind_methods() -> void {
 	ClassDB::bind_static_method("Decimal", D_METHOD("set_exponent", "decimal", "v"), &Decimal::set_exponent);
 
 
-	ClassDB::bind_static_method("Decimal", D_METHOD("into_float", "decimal"), &Decimal::into_float_wrapped);
+	ClassDB::bind_static_method("Decimal", D_METHOD("into_float", "decimal"), &Decimal::into_float);
 	ClassDB::bind_static_method("Decimal", D_METHOD("to_string", "decimal"), &Decimal::to_string);
 	ClassDB::bind_static_method("Decimal", D_METHOD("to_exponential", "decimal", "places"), &Decimal::to_exponential);
 
@@ -176,12 +176,12 @@ auto Decimal::from_parts(const double mantissa, const int64_t exponent) -> Vecto
 		.exponent = exponent,
 	};
 
-	if (mantissa == 0 and exponent == 0) {
+	if (mantissa == 0 && exponent == 0) {
 		return Decimal::DECIMAL_ZERO.raw;
 	}
 
 	auto mantissa_abs = std::abs(mantissa);
-	if (unlikely(mantissa_abs >= 10.0 or mantissa_abs < 1.0)) {
+	if (unlikely(mantissa_abs >= 10.0 || mantissa_abs < 1.0)) {
 		WARN_PRINT(
 			"Decimal.from_parts() - mantissa has to be in range [1.0, 10.0)\n"
 			"called: Decimal.from_parts(" + String::num(mantissa) + ", " + String::num_int64(exponent) + ")\n"
@@ -193,7 +193,7 @@ auto Decimal::from_parts(const double mantissa, const int64_t exponent) -> Vecto
 }
 
 auto Decimal::from_parts_normalize(const double mantissa, const int64_t exponent) -> Vector4i {
-	if (mantissa == 0 and exponent == 0) {
+	if (mantissa == 0 && exponent == 0) {
 		return Decimal::DECIMAL_ZERO.raw;
 	}
 
@@ -213,31 +213,26 @@ auto Decimal::from_float(const double num) -> Vector4i {
 	);
 }
 
-auto Decimal::into_float(const Vector4i decimal) -> std::optional<double> {
+auto Decimal::into_float(const Vector4i decimal) -> double {
 	const auto& dec = RCAST_DEC(decimal);
 	const auto exp = dec.exponent;
 
-	if (exp <= DOUBLE_EXP_MAX and exp >= DOUBLE_EXP_MIN) {
-		return dec.mantissa * _10_pow(exp);
-	} else {
-		return std::nullopt;
-	}
-}
-
-// godot doesn't speak in std::optional<> so we need to use a v*riant
-auto Decimal::into_float_wrapped(const Vector4i decimal) -> Variant {
-	const auto res = into_float(decimal);
-	return res.has_value() ? Variant(res.value()) : Variant(nullptr);
+	// if (exp <= DOUBLE_EXP_MAX && exp >= DOUBLE_EXP_MIN) {
+	// 	return dec.mantissa * _10_pow(exp);
+	// } else {
+	// 	return std::nullopt;
+	// }
+	return dec.mantissa * _10_pow(exp);
 }
 
 auto Decimal::to_string(const Vector4i decimal) -> String {
 	const auto& dec = RCAST_DEC(decimal);
 
-	if (dec.exponent <= MAX_DISPLAYABLE_EXP and dec.exponent >= MIN_DISPLAYABLE_EXP) {
+	if (dec.exponent <= MAX_DISPLAYABLE_EXP && dec.exponent >= MIN_DISPLAYABLE_EXP) {
 		const auto num = Decimal::into_float(decimal);
 
-		if (num.has_value()) {
-			return String::num(num.value());
+		if (std::isfinite(num)) {
+			return String::num(num);
 		}
 	}
 
@@ -410,7 +405,7 @@ auto Decimal::recip(const Vector4i decimal) -> Vector4i {
 	// Just do a check to not hit a mantissa of +10 or -10.
 	const auto& dec = RCAST_DEC(decimal);
 
-	if (likely(dec.mantissa < 1 or dec.mantissa > -1)) {
+	if (likely(dec.mantissa < 1 || dec.mantissa > -1)) {
 		return DecimalData {
 			.mantissa = (1/dec.mantissa) * 10,
 			.exponent = -dec.exponent - 1,
@@ -495,7 +490,7 @@ auto Decimal::floor(const Vector4i decimal) -> Vector4i {
 	if (dec.exponent >= MAX_SIGNIFICANT_DIGITS) return dec.raw;
 
 	// into_float cannot fail here
-	return from_float(std::floor(into_float(dec.raw).value()));
+	return from_float(std::floor(into_float(dec.raw)));
 }
 
 auto Decimal::ceil(const Vector4i decimal) -> Vector4i {
@@ -509,7 +504,7 @@ auto Decimal::ceil(const Vector4i decimal) -> Vector4i {
 
 	if (dec.exponent >= MAX_SIGNIFICANT_DIGITS) return dec.raw;
 
-	return from_float(std::ceil(into_float(dec.raw).value()));
+	return from_float(std::ceil(into_float(dec.raw)));
 }
 
 auto Decimal::trunc(const Vector4i decimal) -> Vector4i {
@@ -521,7 +516,7 @@ auto Decimal::trunc(const Vector4i decimal) -> Vector4i {
 
 	if (dec.exponent >= MAX_SIGNIFICANT_DIGITS) return dec.raw;
 
-	return from_float(std::trunc(into_float(dec.raw).value()));
+	return from_float(std::trunc(into_float(dec.raw)));
 }
 
 
