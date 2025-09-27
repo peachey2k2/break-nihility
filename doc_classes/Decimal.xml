@@ -334,11 +334,11 @@
 			<return type="Variant" />
 			<param index="0" name="decimal" type="Vector4i" />
 			<description>
-				Attempts to convert a [b]Decimal[/b] back into a regular [float]. Returns [code]null[/code] if the decimal is too large or too small to fit in a float, otherwise returns the float value.
+				Attempts to convert a [b]Decimal[/b] back into a regular [float]. Returns [code]inf[/code] or [code]-inf[/code] if the decimal is too large or too small to fit in a float, otherwise returns the float value.
 				[codeblocks][gdscript]
 				var decimal := Decimal.from_float(123.456)
 				var result = Decimal.into_float(decimal)
-				if result != null:
+				if is_finite(result):
 				    print("Converted back: ", result)
 				else:
 				    print("Number too large for float conversion")
