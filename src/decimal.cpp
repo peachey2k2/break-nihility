@@ -171,10 +171,10 @@ Decimal::Decimal() {
 }
 
 auto Decimal::from_parts(const double mantissa, const int64_t exponent) -> Vector4i {
-	DecimalData dec = DecimalData {
-		.mantissa = mantissa,
-		.exponent = exponent,
-	};
+	DecimalData dec = DecimalData (
+		mantissa,
+		exponent
+	);
 
 	if (mantissa == 0 && exponent == 0) {
 		return Decimal::DECIMAL_ZERO.raw;
@@ -197,19 +197,19 @@ auto Decimal::from_parts_normalize(const double mantissa, const int64_t exponent
 		return Decimal::DECIMAL_ZERO.raw;
 	}
 
-	return normalize(DecimalData {
-		.mantissa = mantissa,
-		.exponent = exponent,
-	}.raw);
+	return normalize(DecimalData(
+		mantissa,
+		exponent
+	).raw);
 }
 
 auto Decimal::from_float(const double num) -> Vector4i {
 	// return from_parts(num, 0);
 	return normalize(
-		DecimalData {
-			.mantissa = num,
-			.exponent = 0,
-		}.raw
+		DecimalData(
+			num,
+			0
+		).raw
 	);
 }
 
@@ -291,12 +291,12 @@ auto Decimal::normalize(const Vector4i decimal) -> Vector4i {
 
 	const auto exp_diff = static_cast<int64_t>(std::floor(std::log10(std::abs(dec.mantissa))));
 
-	const auto res = DecimalData {
-		.mantissa = unlikely(exp_diff == DOUBLE_EXP_MIN) ?
+	const auto res = DecimalData(
+		unlikely(exp_diff == DOUBLE_EXP_MIN) ?
 			dec.mantissa * 10 / _10_pow(DOUBLE_EXP_MIN + 1) :
 			dec.mantissa / _10_pow(exp_diff),
-		.exponent = dec.exponent + exp_diff,
-	};
+		dec.exponent + exp_diff
+	);
 	return res.raw;
 }
 
@@ -341,12 +341,12 @@ auto Decimal::add(const Vector4i n1, const Vector4i n2) -> Vector4i {
 	}
 
 	// ?????????????????????
-	const auto res = DecimalData {
-		.mantissa = std::round(
+	const auto res = DecimalData (
+		std::round(
 			1e14 * d_bigger.mantissa +
 			1e14 * d_smaller.mantissa * _10_pow(d_smaller.exponent - d_bigger.exponent)),
-		.exponent = d_bigger.exponent - 14,
-	};
+		d_bigger.exponent - 14
+	);
 
 	return normalize(res.raw);
 }
@@ -368,10 +368,10 @@ auto Decimal::mul(const Vector4i n1, const Vector4i n2) -> Vector4i {
 	const auto& d1 = RCAST_DEC(n1);
 	const auto& d2 = RCAST_DEC(n2);
 
-	const auto res = DecimalData {
-		.mantissa = d1.mantissa * d2.mantissa,
-		.exponent = d1.exponent + d2.exponent,
-	};
+	const auto res = DecimalData(
+		d1.mantissa * d2.mantissa,
+		d1.exponent + d2.exponent
+	);
 
 	return normalize(res.raw);
 }
@@ -379,10 +379,10 @@ auto Decimal::mul(const Vector4i n1, const Vector4i n2) -> Vector4i {
 auto Decimal::mul_num(const Vector4i n1, const double n2) -> Vector4i {
 	const auto& d1 = RCAST_DEC(n1);
 
-	const auto res = DecimalData {
-		.mantissa = d1.mantissa * n2,
-		.exponent = d1.exponent,
-	};
+	const auto res = DecimalData(
+		d1.mantissa * n2,
+		d1.exponent
+	);
 
 	return normalize(res.raw);
 }
@@ -406,15 +406,15 @@ auto Decimal::recip(const Vector4i decimal) -> Vector4i {
 	const auto& dec = RCAST_DEC(decimal);
 
 	if (likely(dec.mantissa < 1 || dec.mantissa > -1)) {
-		return DecimalData {
-			.mantissa = (1/dec.mantissa) * 10,
-			.exponent = -dec.exponent - 1,
-		}.raw;
+		return DecimalData(
+			(1/dec.mantissa) * 10,
+			-dec.exponent - 1
+		).raw;
 	} else {
-		return DecimalData {
-			.mantissa = (1/dec.mantissa),
-			.exponent = -dec.exponent,
-		}.raw;
+		return DecimalData(
+			(1/dec.mantissa),
+			-dec.exponent
+		).raw;
 	}
 }
 
@@ -578,10 +578,10 @@ auto Decimal::pow10_num(const double exp) -> Vector4i {
 	const auto trunc = std::trunc(exp);
 
 	return normalize(
-		DecimalData {
-			.mantissa = std::pow(10, exp - trunc),
-			.exponent = static_cast<int64_t>(trunc),
-		}.raw
+		DecimalData(
+			std::pow(10, exp - trunc),
+			static_cast<int64_t>(trunc)
+		).raw
 	);
 }
 
@@ -612,17 +612,17 @@ auto Decimal::sqrt(const Vector4i decimal) -> Vector4i {
 	if (dec.exponent % 2 != 0) {
 		// sqrt(10) * sqrt(10)
 		// [1, 10) -> [1, 10)
-		return DecimalData {
-			.mantissa = std::sqrt(dec.mantissa) * SQRT_10,
-			.exponent = (dec.exponent - 1) / 2,
-		}.raw;
+		return DecimalData(
+			std::sqrt(dec.mantissa) * SQRT_10,
+			(dec.exponent - 1) / 2
+		).raw;
 	}
 
 	// [1, 10) -> [1, ~3.16)
-	return DecimalData {
-		.mantissa = std::sqrt(dec.mantissa),
-		.exponent = dec.exponent / 2,
-	}.raw;
+	return DecimalData(
+		std::sqrt(dec.mantissa),
+		dec.exponent / 2
+	).raw;
 ;}
 
 auto Decimal::cbrt(const Vector4i decimal) -> Vector4i {
@@ -636,25 +636,25 @@ auto Decimal::cbrt(const Vector4i decimal) -> Vector4i {
 		case 1: case -2:
 			// cbrt(10) * cbrt(10)
 			// [1, 10) -> [1, ~4.64)
-			return DecimalData {
-				.mantissa = std::cbrt(dec.mantissa) * CBRT_10,
-				.exponent = dec.exponent / 3,
-			}.raw;
+			return DecimalData(
+				std::cbrt(dec.mantissa) * CBRT_10,
+				dec.exponent / 3
+			).raw;
 
 		case 2: case -1:
 			// cbrt(10) * cbrt(10)^2
 			// [1, 10) -> [1, 10)
-			return DecimalData {
-				.mantissa = std::cbrt(dec.mantissa) * CBRT_10_SQ,
-				.exponent = dec.exponent / 3,
-			}.raw;
+			return DecimalData(
+				std::cbrt(dec.mantissa) * CBRT_10_SQ,
+				dec.exponent / 3
+			).raw;
 
 		default: // 0
 			// [1, 10) -> [1, ~2.15)
-			return DecimalData {
-				.mantissa = std::cbrt(dec.mantissa),
-				.exponent = dec.exponent / 3,
-		}.raw;
+			return DecimalData(
+				std::cbrt(dec.mantissa),
+				dec.exponent / 3
+		).raw;
 	}
 }
 
