@@ -1,0 +1,65 @@
+# Godot auto generated files
+*.gen.*
+.godot/
+
+# Ignore library files but not the gdextension file
+tests/bin/*
+!tests/bin/android
+tests/bin/android/*
+!tests/bin/android/.gitkeep
+!tests/bin/linux
+tests/bin/linux/*
+!tests/bin/linux/.gitkeep
+!tests/bin/macos
+tests/bin/macos/*
+!tests/bin/macos/.gitkeep
+!tests/bin/windows
+tests/bin/windows/*
+!tests/bin/windows/.gitkeep
+!tests/bin/*.gdextension
+.sconsign*.dblite
+
+# Ignore custom.py
+custom.py
+
+# Ignore generated compile_commands.json
+compile_commands.json
+
+# Ignore files generated for documentation
+/src/gen
+
+# Binaries
+*.o
+*.os
+*.so
+*.obj
+*.bc
+*.pyc
+*.dblite
+*.pdb
+*.lib
+*.config
+*.creator
+*.creator.user
+*.files
+*.includes
+*.idb
+*.exp
+
+# Other stuff
+*.log
+
+# VSCode
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+
+# Jetbrains
+.idea/
+
+# Cmake
+cmake-build*
+CMakeUserPresets.json
+
+# cached stuff
+.cache/*

@@ -1,0 +1,641 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="Decimal" inherits="Object" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		A class for representing very large numbers made for incremental games that prioritizes speed over accuracy. Ported from [url=https://github.com/Patashu/break_infinity.js]break_infinity.js[/url].
+	</brief_description>
+	<description>
+		We store each number in scientific notation. The internal struct looks like the following:
+		[codeblocks][gdscript]
+		class Decimal:
+		    var mantissa: float # double in C++ (8 bytes)
+		    var exponent: int   # int64_t in C++ (8 bytes)
+		    # essentially, the stored number is equal to: mantissa × 10^exponent
+		[/codeblocks][/gdscript]
+		This class is used as a namespace and should not be instantiated by itself. Most of the methods instead operate on [Vector4i] instead, since there is currently no way to define a set-size type that's directly stored in the stack. The underlying implementations bit-cast these values to make them usable.
+		To create a decimal instance, you can use [method Decimal.from_float] or [method Decimal.from_parts].
+		There are a few differences between this and [url=https://github.com/Patashu/break_infinity.js]break_infinity.js[/url]:
+		1. Some functions have a [code]*_num()[/code] variant for [float] arguments. This is due to GDScript not having function overloading.[br]2. Due to the [Vector4i] bit-cast hack, you can't chain methods. In turn, this does zero heap allocations and gains us a lot of speed.[br]3. The exponent is stored as a 64-bit integer, which means our upper and lower bounds are higher.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="abs" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				[color=cyan]aka: |decimal|[/color]
+				Returns the absolute value of [param decimal] (i.e. non-negative value).
+			</description>
+		</method>
+		<method name="abs_log10" qualifiers="static">
+			<return type="float" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				[color=cyan]aka: log₁₀(|decimal|)[/color]
+				Takes the absolute value of [param decimal] and then returns it's logarithm in base 10.
+			</description>
+		</method>
+		<method name="add" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="Vector4i" />
+			<description>
+				[color=cyan]aka: d1 + d2[/color]
+				Returns the sum of [param d1] and [param d2].
+			</description>
+		</method>
+		<method name="add_num" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="float" />
+			<description>
+				[color=cyan]aka: d1 + d2[/color]
+				Returns the sum of [param d1] and [param d2].
+			</description>
+		</method>
+		<method name="afford_arithmetic_series" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="res_available" type="Vector4i" />
+			<param index="1" name="price_start" type="Vector4i" />
+			<param index="2" name="price_add" type="Vector4i" />
+			<param index="3" name="current_owned" type="Vector4i" />
+			<description>
+				Helper function for idle games. Assuming the player has [param current_owned] of an upgrade whose cost starts from [param price_start] and increases by [param price_add], calculates how much of it can be afforded with a budget limit of [param res_available].
+				[codeblocks][gdscript]
+				var coins                 := Decimal.from_float(300)
+				var owned_hamster_count   := Decimal.from_float(5)
+				var hamster_cost_start    := Decimal.from_float(10)
+				var hamster_cost_increase := Decimal.from_float(8)
+				# Current cost would be: hamster_cost_start + (owned_hamster_count * hamster_cost_increase)
+
+				var count := Decimal.afford_arithmetic_series(
+				    coins,
+				    hamster_cost_start,
+				    hamster_cost_increase,
+				    owned_hamster_count
+				)
+				print(Decimal.to_string(count))
+				print("300 coins can buy %s more hamsters." % Decimal.to_string(count))
+				[/codeblocks][/gdscript]
+				The following does the same thing but in O(n) time complexity, and therefore slower:
+				[codeblocks][gdscript]
+				var cur_coins := coins
+				var cur_cost := Decimal.add(
+				    hamster_cost_start,
+				    Decimal.mul(hamster_cost_increase, owned_hamster_count)
+				)
+				var count := Decimal.from_float(0)
+
+				while Decimal.ge(cur_coins, cur_cost):
+				    cur_coins = Decimal.sub(cur_coins, cur_cost)
+				    cur_cost = Decimal.add(cur_cost, hamster_cost_increase)
+				    count = Decimal.add_num(count, 1)
+
+				print(Decimal.to_string(count))
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="afford_geometric_series" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="res_available" type="Vector4i" />
+			<param index="1" name="price_start" type="Vector4i" />
+			<param index="2" name="price_ratio" type="Vector4i" />
+			<param index="3" name="current_owned" type="int64_t" />
+			<description>
+				Helper function for idle games. Assuming the player has [param current_owned] of an upgrade whose cost starts from [param price_start] and gets multiplied by [param price_ratio], calculates how much of it can be afforded with a budget limit of [param res_available].
+				[codeblocks][gdscript]
+				var coins                   := Decimal.from_float(5000)
+				var owned_hamster_count     := Decimal.from_float(5)
+				var hamster_cost_start      := Decimal.from_float(10)
+				var hamster_cost_multiplier := Decimal.from_float(2)
+				# Current cost would be: hamster_cost_start * (hamster_cost_multiplier ^ owned_hamster_count)
+
+				var count := Decimal.afford_geometric_series(
+				    coins,
+				    hamster_cost_start,
+				    hamster_cost_multiplier,
+				    owned_hamster_count
+				)
+				print(Decimal.to_string(count))
+				[/codeblocks][/gdscript]
+				The following does the same thing but in O(n) time complexity, and therefore slower:
+				[codeblocks][gdscript]
+				var cur_coins := coins
+				var cur_cost := Decimal.mul(
+				    hamster_cost_start,
+				    Decimal.pow(hamster_cost_multiplier, owned_hamster_count)
+				)
+				var count := Decimal.from_float(0)
+
+				while Decimal.ge(cur_coins, cur_cost):
+				    cur_coins = Decimal.sub(cur_coins, cur_cost)
+				    cur_cost = Decimal.mul(cur_cost, hamster_cost_multiplier)
+				    count = Decimal.add_num(count, 1)
+
+				print("5000 coins can buy %s more hamsters." % Decimal.to_string(count))
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="cbrt" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="base" type="Vector4i" />
+			<description>
+				[color=cyan]aka: ∛base[/color]
+				Returns the cube root of [param base].
+			</description>
+		</method>
+		<method name="ceil" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				[color=cyan]aka: ⌈decimal⌉[/color]
+				Returns the smallest integer greater than or equal to [param decimal] (rounds up to the nearest integer).
+			</description>
+		</method>
+		<method name="clamp" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="x" type="Vector4i" />
+			<param index="1" name="lo" type="Vector4i" />
+			<param index="2" name="hi" type="Vector4i" />
+			<description>
+				[color=cyan]aka: max(lo, min(x, hi))[/color]
+				Clamps [param x] between [param lo] and [param hi]. Returns:
+				• [param lo] if [param x] is less than [param lo],[br]• [param hi] if [param x] is greater than [param hi],[br]• otherwise returns [param x].
+			</description>
+		</method>
+		<method name="cmp" qualifiers="static">
+			<return type="int" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="Vector4i" />
+			<description>
+				Compares two decimals. Returns:
+				• [code]-1[/code] if [param d1] &lt; [param d2],[br]• [code]0[/code] if [param d1] == [param d2],[br]• [code]1[/code] if [param d1] &gt; [param d2].
+			</description>
+		</method>
+		<method name="div" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="Vector4i" />
+			<description>
+				[color=cyan]aka: d1 / d2[/color]
+				Returns the quotient of [param d1] divided by [param d2].
+			</description>
+		</method>
+		<method name="div_num" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="float" />
+			<description>
+				[color=cyan]aka: d1 / d2[/color]
+				Returns the quotient of [param d1] divided by [param d2].
+			</description>
+		</method>
+		<method name="dp" qualifiers="static">
+			<return type="int" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				Returns the number of decimal places (digits after the decimal point) in [param decimal]. Returns [code]-1[/code] for non-finite numbers.
+			</description>
+		</method>
+		<method name="efficiency_of_purchase" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="cost" type="Vector4i" />
+			<param index="1" name="current_rps" type="Vector4i" />
+			<param index="2" name="delta_rps" type="Vector4i" />
+			<description>
+				Helper function for idle games. Calculates the efficiency of a purchase that costs [param cost] and increases your resource/sec by [param delta_rps], given your [param current_rps]. Lower efficiency scores indicate better purchases.
+				[codeblocks][gdscript]
+				var coins_per_second := Decimal.from_float(30)
+				var hamster_cost     := Decimal.from_float(10)
+				var hamster_gen      := Decimal.from_float(0.2)
+				var pig_cost         := Decimal.from_float(50)
+				var pig_gen          := Decimal.from_float(1.5)
+
+				var hamster_eff := efficiency_of_purchase(
+				    hamster_cost, coins_per_second, hamster_gen
+				)
+				var pig_eff := efficiency_of_purchase(
+				    pig_cost, coins_per_second, pig_gen
+				)
+
+				if Decimal.lt(hamster_eff, pig_eff):
+				    print("buying a hamster is more efficient")
+				else:
+				    print("buying a pig is more efficient")
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="eq" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="Vector4i" />
+			<description>
+				[color=cyan]aka: d1 == d2[/color]
+				Returns [code]true[/code] if [param d1] is equal to [param d2].
+			</description>
+		</method>
+		<method name="eq_tolerance_abs" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="Vector4i" />
+			<param index="2" name="epsilon" type="Vector4i" />
+			<description>
+				[color=cyan]aka: |d1 - d2| &lt;= epsilon[/color]
+				Returns [code]true[/code] if [param d1] and [param d2] are approximately equal within an absolute tolerance of [param epsilon].
+			</description>
+		</method>
+		<method name="eq_tolerance_rel" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="Vector4i" />
+			<param index="2" name="epsilon" type="Vector4i" />
+			<description>
+				Returns [code]true[/code] if [param d1] and [param d2] are approximately equal within a relative tolerance of [param epsilon]. The tolerance is proportional to the magnitude of the larger number.
+			</description>
+		</method>
+		<method name="floor" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				[color=cyan]aka: ⌊decimal⌋[/color]
+				Returns the largest integer less than or equal to [param decimal] (rounds down to the nearest integer).
+			</description>
+		</method>
+		<method name="from_float" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="num" type="float" />
+			<description>
+				Creates a [b]Decimal[/b] from a regular [code]float[/code] value. This is the primary way to create Decimal instances from normal numbers.
+				[codeblocks][gdscript]
+				var big_number := Decimal.from_float(1234567.89)
+				var small_number := Decimal.from_float(0.001)
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="from_parts" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="mantissa" type="float" />
+			<param index="1" name="exponent" type="int" />
+			<description>
+				Creates a [b]Decimal[/b] from explicit mantissa and exponent values. This function expects normalized input, so the mantissa should be in the range [1.0, 10.0). Use [method from_parts_normalize] if your mantissa isn't guaranteed to be in this range.
+				[codeblocks][gdscript]
+				# Creates 1.23e15 (1.23 × 10^15)
+				var decimal := Decimal.from_parts(1.23, 15)
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+	<method name="from_parts_normalize" qualifiers="static">
+		<return type="Vector4i" />
+		<param index="0" name="mantissa" type="float" />
+		<param index="1" name="exponent" type="int" />
+		<description>
+			Creates a [b]Decimal[/b] from explicit mantissa and exponent values, automatically normalizing the result. Unlike [method from_parts], this accepts any mantissa value and will normalize it to the range [1.0, 10.0) by adjusting the exponent accordingly.
+			[codeblocks][gdscript]
+			# These all create the same number (1.23e15)
+			var decimal1 := Decimal.from_parts_normalize(12.3, 14)    # 12.3 × 10^14
+			var decimal2 := Decimal.from_parts_normalize(123, 13)     # 123 × 10^13
+			var decimal3 := Decimal.from_parts_normalize(0.123, 16)   # 0.123 × 10^16
+			[/codeblocks][/gdscript]
+		</description>
+	</method>
+		<method name="ge" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="Vector4i" />
+			<description>
+				[color=cyan]aka: d1 &gt;= d2[/color]
+				Returns [code]true[/code] if [param d1] is greater than or equal to [param d2].
+			</description>
+		</method>
+		<method name="get_exponent" qualifiers="static">
+			<return type="int" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				Returns the exponent part of [param decimal].
+			</description>
+		</method>
+		<method name="get_mantissa" qualifiers="static">
+			<return type="float" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				Returns the mantissa part of [param decimal].
+			</description>
+		</method>
+		<method name="gt" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="Vector4i" />
+			<description>
+				[color=cyan]aka: d1 > d2[/color]
+				Returns [code]true[/code] if [param d1] is greater than [param d2].
+			</description>
+		</method>
+		<method name="into_float" qualifiers="static">
+			<return type="Variant" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				Attempts to convert a [b]Decimal[/b] back into a regular [float]. Returns [code]null[/code] if the decimal is too large or too small to fit in a float, otherwise returns the float value.
+				[codeblocks][gdscript]
+				var decimal := Decimal.from_float(123.456)
+				var result = Decimal.into_float(decimal)
+				if result != null:
+				    print("Converted back: ", result)
+				else:
+				    print("Number too large for float conversion")
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="is_finite" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				Returns [code]true[/code] if [param decimal] represents a finite number (not infinity or NaN).
+			</description>
+		</method>
+		<method name="le" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="Vector4i" />
+			<description>
+				[color=cyan]aka: d1 &lt;= d2[/color]
+				Returns [code]true[/code] if [param d1] is less than or equal to [param d2].
+			</description>
+		</method>
+		<method name="ln" qualifiers="static">
+			<return type="float" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				[color=cyan]aka: ln(decimal)[/color]
+				Returns the natural logarithm (base e) of [param decimal].
+			</description>
+		</method>
+		<method name="log" qualifiers="static">
+			<return type="float" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<param index="1" name="base" type="float" />
+			<description>
+				[color=cyan]aka: log(decimal) / log(base)[/color]
+				Returns the logarithm of [param decimal] in the specified [param base].
+			</description>
+		</method>
+		<method name="log2" qualifiers="static">
+			<return type="float" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				[color=cyan]aka: log₂(decimal)[/color]
+				Returns the base-2 logarithm of [param decimal].
+			</description>
+		</method>
+		<method name="log10" qualifiers="static">
+			<return type="float" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				[color=cyan]aka: log₁₀(decimal)[/color]
+				Returns the base-10 logarithm of [param decimal].
+			</description>
+		</method>
+		<method name="log10_prot" qualifiers="static">
+			<return type="float" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				[color=cyan]aka: max(0, log₁₀(decimal))[/color]
+				Returns the base-10 logarithm of [param decimal], but returns [code]0[/code] if [param decimal] is negative or zero. "Protected" version that avoids domain errors.
+			</description>
+		</method>
+		<method name="lt" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="Vector4i" />
+			<description>
+				[color=cyan]aka: d1 &lt; d2[/color]
+				Returns [code]true[/code] if [param d1] is less than [param d2].
+			</description>
+		</method>
+		<method name="max" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="Vector4i" />
+			<description>
+				[color=cyan]aka: max(d1, d2)[/color]
+				Returns the larger of [param d1] and [param d2].
+			</description>
+		</method>
+		<method name="min" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="Vector4i" />
+			<description>
+				[color=cyan]aka: min(d1, d2)[/color]
+				Returns the smaller of [param d1] and [param d2].
+			</description>
+		</method>
+		<method name="mul" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="Vector4i" />
+			<description>
+				[color=cyan]aka: d1 * d2[/color]
+				Returns the product of [param d1] and [param d2].
+			</description>
+		</method>
+		<method name="mul_num" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="float" />
+			<description>
+				[color=cyan]aka: d1 * d2[/color]
+				Returns the product of [param d1] and [param d2].
+			</description>
+		</method>
+		<method name="ne" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="Vector4i" />
+			<description>
+				[color=cyan]aka: d1 != d2[/color]
+				Returns [code]true[/code] if [param d1] is not equal to [param d2].
+			</description>
+		</method>
+		<method name="neg" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				[color=cyan]aka: -decimal[/color]
+				Returns the negation of [param decimal] (flips the sign).
+			</description>
+		</method>
+		<method name="normalize" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				Normalizes [param decimal] so that the mantissa is in the range [1.0, 10.0) and the exponent is adjusted accordingly.
+				[b]Note:[/b] You shouldn't ever need to use this, as it's automatically done by the implementation when needed.
+			</description>
+		</method>
+		<method name="pow10_num" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="exp" type="float" />
+			<description>
+				[color=cyan]aka: 10^exp[/color]
+				Returns 10 raised to the power of [param exp].
+				[codeblocks][gdscript]
+				var thousand := Decimal.pow10_num(3)  # 10^3 = 1000
+				var million := Decimal.pow10_num(6)   # 10^6 = 1000000
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="pow_num" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="base" type="Vector4i" />
+			<param index="1" name="exp" type="float" />
+			<description>
+				[color=cyan]aka: base^exp[/color]
+				Returns [param base] raised to the power of [param exp].
+				[codeblocks][gdscript]
+				var base := Decimal.from_float(2)
+				var result := Decimal.pow_num(base, 10)  # 2^10 = 1024
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="recip" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				[color=cyan]aka: 1/decimal[/color]
+				Returns the reciprocal (multiplicative inverse) of [param decimal].
+			</description>
+		</method>
+		<method name="set_exponent" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<param index="1" name="v" type="int" />
+			<description>
+				Returns a new Decimal with the exponent set to [param v] while keeping the same mantissa.
+			</description>
+		</method>
+		<method name="set_mantissa" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<param index="1" name="v" type="float" />
+			<description>
+				Returns a new Decimal with the mantissa set to [param v] while keeping the same exponent.
+			</description>
+		</method>
+		<method name="sign" qualifiers="static">
+			<return type="int" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				Returns the sign of [param decimal]. Returns:[br]• [code]1[/code] for positive numbers,[br]• [code]-1[/code] for negative numbers,[br]• [code]0[/code] for zero.
+			</description>
+		</method>
+		<method name="sqrt" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="base" type="Vector4i" />
+			<description>
+				[color=cyan]aka: √base[/color]
+				Returns the square root of [param base]. Returns NaN for negative inputs.
+			</description>
+		</method>
+		<method name="sub" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="Vector4i" />
+			<description>
+				[color=cyan]aka: d1 - d2[/color]
+				Returns the difference of [param d1] minus [param d2].
+			</description>
+		</method>
+		<method name="sub_num" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="d1" type="Vector4i" />
+			<param index="1" name="d2" type="float" />
+			<description>
+				[color=cyan]aka: d1 - d2[/color]
+				Returns the difference of [param d1] minus [param d2].
+			</description>
+		</method>
+		<method name="sum_arithmetic_series" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="num_items" type="Vector4i" />
+			<param index="1" name="price_start" type="Vector4i" />
+			<param index="2" name="price_add" type="Vector4i" />
+			<param index="3" name="current_owned" type="int64_t" />
+			<description>
+				Helper function for idle games. Calculates the total cost of buying [param num_items] items in an arithmetic series where the price starts at [param price_start] and increases by [param price_add] each purchase, given that you already own [param current_owned] items.
+				[codeblocks][gdscript]
+				var hamsters_to_buy       := Decimal.from_float(20)
+				var owned_hamster_count   := Decimal.from_float(5)
+				var hamster_cost_start    := Decimal.from_float(10)
+				var hamster_cost_increase := Decimal.from_float(8)
+
+				var total_cost := Decimal.sum_arithmetic_series(
+				    hamsters_to_buy,
+				    hamster_cost_start,
+				    hamster_cost_increase,
+				    owned_hamster_count
+				)
+
+				print("20 hamsters would cost %s coins." % Decimal.to_string(total_cost))
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="sum_geometric_series" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="num_items" type="Vector4i" />
+			<param index="1" name="price_start" type="Vector4i" />
+			<param index="2" name="price_ratio" type="Vector4i" />
+			<param index="3" name="current_owned" type="Vector4i" />
+			<description>
+				Helper function for idle games. Calculates the total cost of buying [param num_items] items in a geometric series where the price starts at [param price_start] and gets multiplied by [param price_ratio] each purchase, given that you already own [param current_owned] items.
+				[codeblocks][gdscript]
+				var hamsters_to_buy         := Decimal.from_float(20)
+				var owned_hamster_count     := Decimal.from_float(5)
+				var hamster_cost_start      := Decimal.from_float(10)
+				var hamster_cost_multiplier := Decimal.from_float(2)
+
+				var total_cost := Decimal.sum_geometric_series(
+				    hamsters_to_buy,
+				    hamster_cost_start,
+				    hamster_cost_multiplier,
+				    owned_hamster_count
+				)
+
+				print("20 hamsters would cost %s coins." % Decimal.to_string(total_cost))
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="to_exponential" qualifiers="static">
+			<return type="String" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<param index="1" name="places" type="int" />
+			<description>
+				Converts [param decimal] to a string in scientific notation with the specified number of decimal [param places]. If [param places] is [code]-1[/code], uses maximum precision (17).
+				[codeblocks][gdscript]
+				var big_num := Decimal.from_float(123456789)
+				print(Decimal.to_exponential(big_num, 2))  # "+1.23e+8"
+				print(Decimal.to_exponential(big_num, -1)) # "+1.23456789e+8"
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="to_string" qualifiers="static">
+			<return type="String" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				Converts [param decimal] to a human-readable string representation. For numbers that fit in a regular float range, returns the normal decimal format. For very large or very small numbers, returns scientific notation.
+				[codeblocks][gdscript]
+				var small_num := Decimal.from_float(123.45)
+				var big_num := Decimal.pow10_num(1337)
+				print(Decimal.to_string(small_num))  # "123.45"
+				print(Decimal.to_string(big_num))    # "1e+1337"
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="trunc" qualifiers="static">
+			<return type="Vector4i" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				Returns [param decimal] with the fractional part removed (rounds towards zero). This is different from [method floor] for negative numbers.
+			</description>
+		</method>
+	</methods>
+</class>
