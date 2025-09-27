@@ -16,13 +16,19 @@ using namespace godot;
 // essentially automates the bitcasting for this purpose
 //
 // related proposal: https://github.com/godotengine/godot-proposals/issues/11797
-typedef union {
+union DecimalData {
 	struct {
 		double mantissa;
 		int64_t exponent;
 	};
 	Vector4i raw;
-} DecimalData;
+
+	#ifndef __ANDROID__
+		constexpr
+	#endif
+	DecimalData(const double m, const int64_t e)
+		: mantissa(m), exponent(e){}
+};
 
 
 class Decimal : public Object {
@@ -40,23 +46,23 @@ protected:
 #endif
 
 private:
-	static DECIMAL_DECL_CONST auto DECIMAL_ZERO = DecimalData { 0.0, 0 };
-	static DECIMAL_DECL_CONST auto DECIMAL_ZERO_NEG = DecimalData { -0.0, 0 };
+	static DECIMAL_DECL_CONST auto DECIMAL_ZERO = DecimalData(0.0, 0);
+	static DECIMAL_DECL_CONST auto DECIMAL_ZERO_NEG = DecimalData(-0.0, 0);
 
-	static DECIMAL_DECL_CONST auto DECIMAL_ONE = DecimalData { 1.0, 0 };
-	static DECIMAL_DECL_CONST auto DECIMAL_ONE_NEG = DecimalData { -1.0, 0 };
+	static DECIMAL_DECL_CONST auto DECIMAL_ONE = DecimalData(1.0, 0);
+	static DECIMAL_DECL_CONST auto DECIMAL_ONE_NEG = DecimalData(-1.0, 0);
 
-	static DECIMAL_DECL_CONST auto DECIMAL_INF = DecimalData {
+	static DECIMAL_DECL_CONST auto DECIMAL_INF = DecimalData(
 		std::numeric_limits<double>::infinity(), 0
-	};
+	);
 
-	static DECIMAL_DECL_CONST auto DECIMAL_INF_NEG = DecimalData {
+	static DECIMAL_DECL_CONST auto DECIMAL_INF_NEG = DecimalData(
 		-std::numeric_limits<double>::infinity(), 0
-	};
+	);
 
-	static DECIMAL_DECL_CONST auto DECIMAL_NAN = DecimalData {
+	static DECIMAL_DECL_CONST auto DECIMAL_NAN = DecimalData(
 		std::numeric_limits<double>::signaling_NaN(), 0
-	};
+	);
 
 
 public:
