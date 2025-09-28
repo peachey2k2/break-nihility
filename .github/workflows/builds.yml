@@ -31,7 +31,8 @@ jobs:
             { platform: web, arch: wasm32, os: ubuntu-22.04 },
           ]
         target-type: [template_debug, template_release]
-        float-precision: [single, double]
+        # float-precision: [single, double]
+        float-precision: [double]
 
     runs-on: ${{ matrix.target.os }}
     steps:
@@ -100,15 +101,44 @@ jobs:
           path: |
             ${{ github.workspace }}/bin/**
 
-  # Merges all the build artifacts together into a single break-nihility artifact.
-  # If you comment out this step, all the builds will be uploaded individually.
-  merge:
-    runs-on: ubuntu-22.04
+  upload:
+    runs-on: ubuntu-latest
     needs: build
+
     steps:
-      - name: Merge Artifacts
-        uses: actions/upload-artifact/merge@v4
+      - name: Checkout target repository
+        uses: actions/checkout@v4
         with:
-          name: break-nihility
+          repository: peachey2k2/break-nihility-bin
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: bin-repo
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          # name: break-nihility
           pattern: break-nihility-*
-          delete-merged: true
+          path: bin-repo/addons/break-nihility
+          merge-multiple: true
+
+      - name: Move artifacts to target repo
+        run: |
+          cd bin-repo
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add .
+          git commit -m "Update via action - $(date +'%d-%m-%Y %H:%M')"
+          git push
+
+  # # Merges all the build artifacts together into a single break-nihility artifact.
+  # # If you comment out this step, all the builds will be uploaded individually.
+  # merge:
+  #   runs-on: ubuntu-22.04
+  #   needs: build
+  #   steps:
+  #     - name: Merge Artifacts
+  #       uses: actions/upload-artifact/merge@v4
+  #       with:
+  #         name: break-nihility
+  #         pattern: break-nihility-*
+  #         delete-merged: true
