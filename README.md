@@ -36,8 +36,8 @@ func _ready() -> void:
     print(3e200 * 2e250) # prints "inf"
 ```
 
-## Usage
-todo
+## Installation
+This repo is automatically built and mirrored to [peachey2k2/break-nihility-bin](https://github.com/peachey2k2/break-nihility-bin), which you can just copy into your own game.
 
 ## Benchmarks
 i dug a bit and found a couple addons/scripts that do a similar thing
