@@ -5,6 +5,7 @@ Plugin for incremental games that needs to deal with massive numbers. Ported fro
 In Godot, there are 2 types to represent numbers:
 - `int` can store numbers up to 2^63 - 1 but doesn't work on fractionals
 - `float` goes up to 1.8e308, but loses precision on higher numbers
+
 **Solution:** just combine them
 
 ```gdscript
