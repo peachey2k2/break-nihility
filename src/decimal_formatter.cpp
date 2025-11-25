@@ -97,7 +97,6 @@ auto DecimalFormatter::_bind_methods() -> void {
 		DEFVAL(true)
 	);
 
-	// Bind enum constants manually since GetTypeInfo is not specialized for our enum types
 	ClassDB::bind_integer_constant(get_class_static(), "FormatMode", "FORMAT_MODE_FULL", static_cast<GDExtensionInt>(FORMAT_MODE_FULL));
 	ClassDB::bind_integer_constant(get_class_static(), "FormatMode", "FORMAT_MODE_ABBREVIATED", static_cast<GDExtensionInt>(FORMAT_MODE_ABBREVIATED));
 	ClassDB::bind_integer_constant(get_class_static(), "FormatMode", "FORMAT_MODE_AUTO", static_cast<GDExtensionInt>(FORMAT_MODE_AUTO));
@@ -131,7 +130,7 @@ auto DecimalFormatter::format_abbreviated(const Vector4i decimal) -> String {
 		return Decimal::to_string(decimal);
 	}
 
-	// Fast early check: if exponent field >= 69, definitely beyond 999c
+	// If exponent field >= 69, definitely beyond 999c
 	int64_t decimal_exponent = Decimal::get_exponent(decimal);
 	if (decimal_exponent >= 69) {
 		return Decimal::to_exponential(decimal, decimal_places);
@@ -178,7 +177,6 @@ auto DecimalFormatter::format_abbreviated(const Vector4i decimal) -> String {
 
 	// If no abbreviation found (number too small), format as full
 	if (abbrev_key == 0 || abbrev_key < 3) {
-		// Number is too small, format as full
 		return format_full(decimal);
 	}
 
@@ -210,10 +208,10 @@ auto DecimalFormatter::format_full(const Vector4i decimal) -> String {
 		return Decimal::to_string(decimal);
 	}
 
-	// Fast check using exponent first
+	// Check using exponent first
 	int64_t exponent = Decimal::get_exponent(decimal);
 
-	// If exponent is very large, use scientific notation immediately (avoid expensive log10)
+	// If exponent is very large, use scientific notation immediately
 	if (exponent > 15) {
 		return Decimal::to_exponential(decimal, decimal_places);
 	}
@@ -223,7 +221,7 @@ auto DecimalFormatter::format_full(const Vector4i decimal) -> String {
 	double mantissa = std::abs(Decimal::get_mantissa(decimal));
 	if (exponent <= 15 && mantissa < 1e16) {
 		double float_value = Decimal::into_float(decimal);
-		return format_number_with_separators(float_value, -1);  // -1 means use default precision
+		return format_number_with_separators(float_value, -1); // -1 == default precision
 	} else {
 		// For edge cases, use exponential notation
 		return Decimal::to_exponential(decimal, decimal_places);
@@ -243,7 +241,6 @@ auto DecimalFormatter::format_full_with_zeroes(const Vector4i decimal, const int
 		return Decimal::to_exponential(decimal, decimal_places);
 	}
 
-	// Handle zero
 	if (mantissa == 0.0) {
 		return "0";
 	}
@@ -281,7 +278,7 @@ auto DecimalFormatter::format_full_with_zeroes(const Vector4i decimal, const int
 		// All digits come after the decimal point
 		int64_t leading_zeros_needed = std::abs(decimal_position);
 
-		// Build zeros more efficiently for large counts
+		// Build zeros
 		String zeros_str = "";
 		if (leading_zeros_needed > 0) {
 			if (leading_zeros_needed > maximum_exponent) {
@@ -302,7 +299,6 @@ auto DecimalFormatter::format_full_with_zeroes(const Vector4i decimal, const int
 		String zeros_str = String("0").repeat(trailing_zeros_needed);
 		String result = full_digits + zeros_str;
 
-		// Add thousands separators
 		result = add_thousands_separators(result);
 		return (is_negative ? "-" : "") + result;
 	} else {
@@ -351,10 +347,9 @@ auto DecimalFormatter::format_number_with_separators_impl(const double value, co
 	String integer_part = parts.size() > 0 ? parts[0] : "";
 	String decimal_part = parts.size() > 1 ? parts[1] : "";
 
-	// Add thousands separators to integer part
+	// Thousands separators to integer part
 	integer_part = add_thousands_separators(integer_part);
 
-	// Combine
 	String result = integer_part;
 	if (decimal_part.length() > 0) {
 		result += decimal_separator + decimal_part;
