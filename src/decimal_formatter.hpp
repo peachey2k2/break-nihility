@@ -79,7 +79,7 @@ public:
 	) -> void;
 
 private:
-	static const std::unordered_map<int64_t, std::pair<String, String>> ABBREVIATIONS;
+	static auto get_abbreviations() -> const std::unordered_map<int64_t, std::pair<String, String>>&;
 
 	auto format_number_with_separators_impl(const double value, const int64_t precision) -> String;
 

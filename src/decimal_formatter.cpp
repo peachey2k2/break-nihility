@@ -12,30 +12,34 @@
 using namespace godot;
 
 // Abbreviations map: exponent -> [short, long]
-const std::unordered_map<int64_t, std::pair<String, String>> DecimalFormatter::ABBREVIATIONS = {
-	{3, {"K", "Thousand"}},
-	{6, {"M", "Million"}},
-	{9, {"B", "Billion"}},
-	{12, {"t", "Trillion"}},
-	{15, {"q", "Quadrillion"}},
-	{18, {"Q", "Quintillion"}},
-	{21, {"s", "Sextillion"}},
-	{24, {"S", "Septillion"}},
-	{27, {"o", "Octillion"}},
-	{30, {"n", "Nonillion"}},
-	{33, {"d", "Decillion"}},
-	{36, {"U", "Undecillion"}},
-	{39, {"D", "Duodecillion"}},
-	{42, {"T", "Tredecillion"}},
-	{45, {"Qt", "Quattuordecillion"}},
-	{48, {"Qd", "Quinquadecillion"}},
-	{51, {"Sd", "Sexdecillion"}},
-	{54, {"St", "Septendecillion"}},
-	{57, {"O", "Octodecillion"}},
-	{60, {"N", "Novendecillion"}},
-	{63, {"v", "Vigintillion"}},
-	{66, {"c", "Unvigintillion"}}
-};
+// Use function-local static to avoid static initialization order issues
+auto DecimalFormatter::get_abbreviations() -> const std::unordered_map<int64_t, std::pair<String, String>>& {
+	static const std::unordered_map<int64_t, std::pair<String, String>> abbreviations = {
+		{3, {String("K"), String("Thousand")}},
+		{6, {String("M"), String("Million")}},
+		{9, {String("B"), String("Billion")}},
+		{12, {String("t"), String("Trillion")}},
+		{15, {String("q"), String("Quadrillion")}},
+		{18, {String("Q"), String("Quintillion")}},
+		{21, {String("s"), String("Sextillion")}},
+		{24, {String("S"), String("Septillion")}},
+		{27, {String("o"), String("Octillion")}},
+		{30, {String("n"), String("Nonillion")}},
+		{33, {String("d"), String("Decillion")}},
+		{36, {String("U"), String("Undecillion")}},
+		{39, {String("D"), String("Duodecillion")}},
+		{42, {String("T"), String("Tredecillion")}},
+		{45, {String("Qt"), String("Quattuordecillion")}},
+		{48, {String("Qd"), String("Quinquadecillion")}},
+		{51, {String("Sd"), String("Sexdecillion")}},
+		{54, {String("St"), String("Septendecillion")}},
+		{57, {String("O"), String("Octodecillion")}},
+		{60, {String("N"), String("Novendecillion")}},
+		{63, {String("v"), String("Vigintillion")}},
+		{66, {String("c"), String("Unvigintillion")}}
+	};
+	return abbreviations;
+}
 
 auto DecimalFormatter::_bind_methods() -> void {
 	ClassDB::bind_method(D_METHOD("format", "decimal"), &DecimalFormatter::format);
@@ -156,8 +160,9 @@ auto DecimalFormatter::format_abbreviated(const Vector4i decimal) -> String {
 
 		// Find the appropriate abbreviation (iterate in order)
 		// We need to check keys in ascending order
+		const auto& abbreviations = get_abbreviations();
 		std::vector<int64_t> keys;
-		for (const auto& pair : ABBREVIATIONS) {
+		for (const auto& pair : abbreviations) {
 			keys.push_back(pair.first);
 		}
 		std::sort(keys.begin(), keys.end());
@@ -187,11 +192,12 @@ auto DecimalFormatter::format_abbreviated(const Vector4i decimal) -> String {
 	String formatted_value = format_number_with_separators(value_in_units, decimal_places);
 
 	// Get abbreviation or name
+	const auto& abbreviations = get_abbreviations();
 	String abbrev_text = "";
 	if (abbreviation_type == ABBREVIATION_TYPE_SHORT) {
-		abbrev_text = ABBREVIATIONS.at(abbrev_key).first;
+		abbrev_text = abbreviations.at(abbrev_key).first;
 	} else {
-		abbrev_text = ABBREVIATIONS.at(abbrev_key).second;
+		abbrev_text = abbreviations.at(abbrev_key).second;
 	}
 
 	// Combine
@@ -253,14 +259,14 @@ auto DecimalFormatter::format_full_with_zeroes(const Vector4i decimal, const int
 	String mantissa_str = mantissa_buf;
 
 	// Remove trailing zeros after decimal point
-	mantissa_str = mantissa_str.rstrip("0");
+	mantissa_str = mantissa_str.rstrip(String("0"));
 	// Remove decimal point if no fractional part remains
-	if (mantissa_str.ends_with(".")) {
-		mantissa_str = mantissa_str.rstrip(".");
+	if (mantissa_str.ends_with(String("."))) {
+		mantissa_str = mantissa_str.rstrip(String("."));
 	}
 
 	// Split into integer and fractional parts
-	PackedStringArray parts = mantissa_str.split(".");
+	PackedStringArray parts = mantissa_str.split(String("."));
 	String integer_part = parts.size() > 0 ? parts[0] : "";
 	String fractional_part = parts.size() > 1 ? parts[1] : "";
 
@@ -302,7 +308,7 @@ auto DecimalFormatter::format_full_with_zeroes(const Vector4i decimal, const int
 	} else {
 		// Decimal point is in the middle of the digits
 		String before_decimal = full_digits.substr(0, decimal_position);
-		String after_decimal = full_digits.substr(decimal_position);
+		String after_decimal = full_digits.substr(decimal_position, -1);
 
 		// Add thousands separators to integer part
 		String formatted_before = add_thousands_separators(before_decimal);
@@ -325,8 +331,8 @@ auto DecimalFormatter::format_number_with_separators_impl(const double value, co
 		// Use default formatting (remove trailing zeros)
 		formatted = String::num(abs_value);
 		// Remove trailing zeros after decimal point
-		if (formatted.contains(".")) {
-			formatted = formatted.rstrip("0").rstrip(".");
+		if (formatted.contains(String("."))) {
+			formatted = formatted.rstrip(String("0")).rstrip(String("."));
 		}
 	} else {
 		// Format with specific precision
@@ -335,13 +341,13 @@ auto DecimalFormatter::format_number_with_separators_impl(const double value, co
 		formatted = buf;
 		// When precision is specified, preserve trailing zeros to show exact decimal places
 		// Only remove the decimal point if there are no decimal digits
-		if (formatted.ends_with(".")) {
-			formatted = formatted.rstrip(".");
+		if (formatted.ends_with(String("."))) {
+			formatted = formatted.rstrip(String("."));
 		}
 	}
 
 	// Split into integer and decimal parts
-	PackedStringArray parts = formatted.split(".");
+	PackedStringArray parts = formatted.split(String("."));
 	String integer_part = parts.size() > 0 ? parts[0] : "";
 	String decimal_part = parts.size() > 1 ? parts[1] : "";
 
@@ -376,8 +382,9 @@ auto DecimalFormatter::add_thousands_separators(const String digits) -> String {
 }
 
 auto DecimalFormatter::get_abbreviation_for_exponent(const int64_t exponent, const bool use_long) -> String {
-	auto it = ABBREVIATIONS.find(exponent);
-	if (it != ABBREVIATIONS.end()) {
+	const auto& abbreviations = get_abbreviations();
+	auto it = abbreviations.find(exponent);
+	if (it != abbreviations.end()) {
 		return use_long ? it->second.second : it->second.first;
 	}
 	return "";
