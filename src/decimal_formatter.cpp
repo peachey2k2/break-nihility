@@ -4,15 +4,12 @@
 #include "godot_cpp/core/defs.hpp"
 #include "godot_cpp/core/error_macros.hpp"
 #include "godot_cpp/core/math.hpp"
-#include <algorithm>
 #include <cmath>
 #include <cstring>
-#include <vector>
 
 using namespace godot;
 
 // Abbreviations map: exponent -> [short, long]
-// Use function-local static to avoid static initialization order issues
 auto DecimalFormatter::get_abbreviations() -> const std::unordered_map<int64_t, std::pair<String, String>>& {
 	static const std::unordered_map<int64_t, std::pair<String, String>> abbreviations = {
 		{3, {String("K"), String("Thousand")}},
@@ -157,19 +154,15 @@ auto DecimalFormatter::format_abbreviated(const Vector4i decimal) -> String {
 		double log10_value = Decimal::log10(decimal);
 		exponent_level = static_cast<int64_t>(std::floor(log10_value));
 
-		// Find the appropriate abbreviation (iterate in order)
-		// We need to check keys in ascending order
-		const auto& abbreviations = get_abbreviations();
-		std::vector<int64_t> keys;
-		for (const auto& pair : abbreviations) {
-			keys.push_back(pair.first);
-		}
-		std::sort(keys.begin(), keys.end());
+		// Find the appropriate abbreviation
+		static const int64_t sorted_keys[] = {3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57, 60, 63, 66};
+		static const size_t num_keys = sizeof(sorted_keys) / sizeof(sorted_keys[0]);
 
-		for (int64_t key : keys) {
+		// Iterate backwards to find the largest key <= exponent_level
+		for (size_t i = num_keys; i > 0; --i) {
+			int64_t key = sorted_keys[i - 1];
 			if (key <= exponent_level) {
 				abbrev_key = key;
-			} else {
 				break;
 			}
 		}
@@ -199,8 +192,11 @@ auto DecimalFormatter::format_abbreviated(const Vector4i decimal) -> String {
 	}
 
 	// Combine
-	String separator = show_abbreviation_space ? " " : "";
-	return formatted_value + separator + abbrev_text;
+	if (show_abbreviation_space) {
+		return formatted_value + " " + abbrev_text;
+	} else {
+		return formatted_value + abbrev_text;
+	}
 }
 
 auto DecimalFormatter::format_full(const Vector4i decimal) -> String {
