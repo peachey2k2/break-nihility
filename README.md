@@ -28,10 +28,10 @@ func _ready() -> void:
     var result := Decimal.mul(d1, d2)
 
     print(
-        Decimal.to_string(d1), " + ",
+        Decimal.to_string(d1), " * ",
         Decimal.to_string(d2), " = ",
         Decimal.to_string(result)
-    ) # prints "3.e+200 + 2.e+250 = 6.e+450"
+    ) # prints "3.e+200 * 2.e+250 = 6.e+450"
 
     # floats would just give you infinity in this case
     print(3e200 * 2e250) # prints "inf"
