@@ -6,6 +6,7 @@
 #include <godot_cpp/godot.hpp>
 
 #include "decimal.hpp"
+#include "decimal_formatter.hpp"
 
 using namespace godot;
 
@@ -14,6 +15,7 @@ void initialize_gdextension_types(ModuleInitializationLevel p_level) {
 		return;
 	}
 	GDREGISTER_CLASS(Decimal);
+	GDREGISTER_CLASS(DecimalFormatter);
 }
 
 void uninitialize_gdextension_types(ModuleInitializationLevel p_level) {
