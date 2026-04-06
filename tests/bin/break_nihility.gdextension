@@ -50,7 +50,13 @@ android.arm64.double.debug = "./android/libbreak_nihility.android.template_debug
 android.arm64.single.release = "./android/libbreak_nihility.android.template_release.arm64.so"
 android.arm64.double.release = "./android/libbreak_nihility.android.template_release.arm64.double.so"
 
-web.wasm32.single.debug = "./web/libbreak_nihility.web.template_debug.wasm32.nothreads.wasm"
-web.wasm32.double.debug = "./web/libbreak_nihility.web.template_release.wasm32.double.nothreads.wasm"
-web.wasm32.single.release = "./web/libbreak_nihility.web.template_release.wasm32.nothreads.wasm"
-web.wasm32.double.release = "./web/libbreak_nihility.web.template_release.wasm32.double.nothreads.wasm"
+web.wasm32.threads.single.debug = "./web/libbreak_nihility.web.template_debug.wasm32.wasm"
+web.wasm32.threads.double.debug = "./web/libbreak_nihility.web.template_release.wasm32.double.wasm"
+web.wasm32.threads.single.release = "./web/libbreak_nihility.web.template_release.wasm32.wasm"
+web.wasm32.threads.double.release = "./web/libbreak_nihility.web.template_release.wasm32.double.wasm"
+
+web.wasm32.nothreads.single.debug = "./web/libbreak_nihility.web.template_debug.wasm32.nothreads.wasm"
+web.wasm32.nothreads.double.debug = "./web/libbreak_nihility.web.template_release.wasm32.double.nothreads.wasm"
+web.wasm32.nothreads.single.release = "./web/libbreak_nihility.web.template_release.wasm32.nothreads.wasm"
+web.wasm32.nothreads.double.release = "./web/libbreak_nihility.web.template_release.wasm32.double.nothreads.wasm"
+
