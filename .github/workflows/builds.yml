@@ -32,6 +32,26 @@ jobs:
           ]
         target-type: [template_debug, template_release]
         float-precision: [single, double]
+        threads: [yes]
+
+        include:
+          - target: { platform: web, arch: wasm32, os: ubuntu-22.04 }
+            target-type: template_debug
+            float-precision: single
+            threads: no
+          - target: { platform: web, arch: wasm32, os: ubuntu-22.04 }
+            target-type: template_debug
+            float-precision: double
+            threads: no
+          - target: { platform: web, arch: wasm32, os: ubuntu-22.04 }
+            target-type: template_release
+            float-precision: single
+            threads: no
+          - target: { platform: web, arch: wasm32, os: ubuntu-22.04 }
+            target-type: template_release
+            float-precision: double
+            threads: no
+
 
     runs-on: ${{ matrix.target.os }}
     steps:
@@ -70,20 +90,20 @@ jobs:
         uses: ./godot-cpp/.github/actions/godot-cache-restore
         with:
           scons-cache: ${{ github.workspace }}/.scons-cache/
-          cache-name: ${{ matrix.target.platform }}_${{ matrix.target.arch }}_${{ matrix.float-precision }}_${{ matrix.target-type }}
+          cache-name: ${{ matrix.target.platform }}_${{ matrix.target.arch }}${{ matrix.threads == 'no' && '_nothreads' || '' }}_${{ matrix.float-precision }}_${{ matrix.target-type }}
 
       - name: Build GDExtension Debug Build
         shell: sh
         env:
           SCONS_CACHE: ${{ github.workspace }}/.scons-cache/
         run: |
-          scons target=${{ matrix.target-type }} platform=${{ matrix.target.platform }} arch=${{ matrix.target.arch }} precision=${{ matrix.float-precision }}
+          scons target=${{ matrix.target-type }} platform=${{ matrix.target.platform }} arch=${{ matrix.target.arch }} precision=${{ matrix.float-precision }} threads=${{ matrix.threads }}
 
       - name: Save .scons_cache
         uses: ./godot-cpp/.github/actions/godot-cache-save
         with:
           scons-cache: ${{ github.workspace }}/.scons-cache/
-          cache-name: ${{ matrix.target.platform }}_${{ matrix.target.arch }}_${{ matrix.float-precision }}_${{ matrix.target-type }}
+          cache-name: ${{ matrix.target.platform }}_${{ matrix.target.arch }}${{ matrix.threads == 'no' && '_nothreads' || '' }}_${{ matrix.float-precision }}_${{ matrix.target-type }}
 
       # Clean up compilation files
       - name: Windows - Delete compilation files
@@ -96,7 +116,7 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: break-nihility-${{ matrix.target.platform }}-${{ matrix.target.arch }}-${{ matrix.float-precision }}-${{ matrix.target-type }}
+          name: break-nihility-${{ matrix.target.platform }}-${{ matrix.target.arch }}${{ matrix.threads == 'no' && '-nothreads' || '' }}-${{ matrix.float-precision }}-${{ matrix.target-type }}
           path: |
             ${{ github.workspace }}/bin/**
 
