@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="DecimalFormatter" inherits="RefCounted" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		A formatter class for [Decimal] numbers that supports abbreviations, names, and various formatting options.
+	</brief_description>
+	<description>
+		DecimalFormatter provides flexible formatting options for [Decimal] numbers, including:
+		• Abbreviated format with short (K, M, B) or long (Thousand, Million, Billion) names
+		• Full number format with thousands and decimal separators
+		• Automatic formatting based on a threshold
+		• Full number representation with all zeroes
+		• Scientific notation for extremely large numbers (beyond 999c)
+		
+		The formatter supports all standard number abbreviations from Thousand (K) up to Unvigintillion (c). For numbers beyond 999c, it automatically switches to scientific notation for performance.
+		[codeblocks][gdscript]
+		var formatter = DecimalFormatter.new()
+		var number = Decimal.from_float(1234567.89)
+		
+		# Format with abbreviation
+		formatter.abbreviation_type = DecimalFormatter.ABBREVIATION_TYPE_SHORT
+		print(formatter.format(number))  # "1.2 M"
+		
+		# Format with full number
+		formatter.format_mode = DecimalFormatter.FORMAT_MODE_FULL
+		print(formatter.format(number))  # "1,234,567.89"
+		
+		# Get full number with all zeroes
+		var big_number = Decimal.from_parts(4.3, 32)
+		print(formatter.format_full_with_zeroes(big_number))  # "430000000000000000000000000000000"
+		[/codeblocks][/gdscript]
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="format">
+			<return type="String" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				Formats a [Decimal] number according to the current configuration. The output depends on [member format_mode]:
+				• [constant FORMAT_MODE_FULL]: Always shows the full formatted number
+				• [constant FORMAT_MODE_ABBREVIATED]: Always shows abbreviated format
+				• [constant FORMAT_MODE_AUTO]: Uses [member threshold] to decide - shows full format if number ≤ threshold, otherwise abbreviated
+				[codeblocks][gdscript]
+				var formatter = DecimalFormatter.new()
+				var number = Decimal.from_float(1234567.89)
+				
+				formatter.format_mode = DecimalFormatter.FORMAT_MODE_AUTO
+				formatter.threshold = Decimal.from_float(1000.0)
+				print(formatter.format(number))  # "1.2 M"
+				
+				var small = Decimal.from_float(500.0)
+				print(formatter.format(small))  # "500"
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="format_abbreviated">
+			<return type="String" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				Formats a [Decimal] number with abbreviation or name. The abbreviation type is determined by [member abbreviation_type].
+				For numbers beyond 999c (10^69), automatically uses scientific notation.
+				[codeblocks][gdscript]
+				var formatter = DecimalFormatter.new()
+				var number = Decimal.from_parts(4.2, 15)  # 4.2 quadrillion
+				
+				formatter.abbreviation_type = DecimalFormatter.ABBREVIATION_TYPE_SHORT
+				print(formatter.format_abbreviated(number))  # "4.2 q"
+				
+				formatter.abbreviation_type = DecimalFormatter.ABBREVIATION_TYPE_LONG
+				print(formatter.format_abbreviated(number))  # "4.2 Quadrillion"
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="format_full">
+			<return type="String" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				Formats a [Decimal] number as a full string with thousands and decimal separators. For very large numbers (exponent > 15), uses scientific notation instead.
+				[codeblocks][gdscript]
+				var formatter = DecimalFormatter.new()
+				var number = Decimal.from_float(1234567.89)
+				
+				print(formatter.format_full(number))  # "1,234,567.89"
+				
+				formatter.thousands_separator = " "
+				formatter.decimal_separator = ","
+				print(formatter.format_full(number))  # "1 234 567,89"
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="format_full_with_zeroes">
+			<return type="String" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<param index="1" name="maximum_exponent" type="int" default="1000" />
+			<description>
+				Converts a [Decimal] number to a full string representation with all zeroes. For example, 4.3 × 10^32 becomes "430000000000000000000000000000000".
+				If the exponent exceeds [param maximum_exponent], uses scientific notation instead to avoid performance issues.
+				[codeblocks][gdscript]
+				var formatter = DecimalFormatter.new()
+				var big_number = Decimal.from_parts(4.3, 32)
+				
+				print(formatter.format_full_with_zeroes(big_number))
+				# "430000000000000000000000000000000"
+				
+				# For very large numbers, uses scientific notation
+				var huge = Decimal.from_parts(5.5, 150)
+				print(formatter.format_full_with_zeroes(huge))
+				# "5.5e+150" (scientific notation)
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="format_number_with_separators">
+			<return type="String" />
+			<param index="0" name="value" type="float" />
+			<param index="1" name="precision" type="int" default="-1" />
+			<description>
+				Formats a regular float number with thousands and decimal separators. If [param precision] is [code]-1[/code], uses default formatting and removes trailing zeros.
+				[codeblocks][gdscript]
+				var formatter = DecimalFormatter.new()
+				
+				print(formatter.format_number_with_separators(1234567.89, -1))
+				# "1,234,567.89"
+				
+				print(formatter.format_number_with_separators(1234567.89, 2))
+				# "1,234,567.89"
+				
+				print(formatter.format_number_with_separators(1000.0, -1))
+				# "1,000"
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="add_thousands_separators">
+			<return type="String" />
+			<param index="0" name="digits" type="String" />
+			<description>
+				Adds thousands separators to a string of digits. Uses [member thousands_separator] and respects [member digits_thousands_separator_threshold].
+				[codeblocks][gdscript]
+				var formatter = DecimalFormatter.new()
+				
+				print(formatter.add_thousands_separators("1234567"))
+				# "1,234,567"
+				
+				formatter.thousands_separator = " "
+				print(formatter.add_thousands_separators("1234567"))
+				# "1 234 567"
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="get_abbreviation_for_exponent">
+			<return type="String" />
+			<param index="0" name="exponent" type="int" />
+			<param index="1" name="use_long" type="bool" default="false" />
+			<description>
+				Returns the abbreviation or name for a given exponent (power of 10). Returns an empty string if no abbreviation exists for that exponent.
+				[codeblocks][gdscript]
+				var formatter = DecimalFormatter.new()
+				
+				print(formatter.get_abbreviation_for_exponent(6, false))  # "M"
+				print(formatter.get_abbreviation_for_exponent(6, true))   # "Million"
+				print(formatter.get_abbreviation_for_exponent(15, false)) # "q"
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="get_exponent_level">
+			<return type="int" />
+			<param index="0" name="decimal" type="Vector4i" />
+			<description>
+				Returns the exponent level (log₁₀) of a [Decimal] number. This is useful for determining which abbreviation to use.
+				[codeblocks][gdscript]
+				var formatter = DecimalFormatter.new()
+				var number = Decimal.from_parts(4.2, 15)  # 4.2 × 10^15
+				
+				print(formatter.get_exponent_level(number))  # 15
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+		<method name="configure">
+			<return type="void" />
+			<param index="0" name="mode" type="int" default="2" />
+			<param index="1" name="abbrev_type" type="int" default="0" />
+			<param index="2" name="threshold_value" type="Vector4i" default="Vector4i(0, 0, 0, 0)" />
+			<param index="3" name="decimals" type="int" default="2" />
+			<param index="4" name="thousands_sep" type="String" default="&quot;,&quot;" />
+			<param index="5" name="decimal_sep" type="String" default="&quot;.&quot;" />
+			<param index="6" name="show_space" type="bool" default="true" />
+			<description>
+				Configures all formatter settings at once. This is a convenience method to set multiple properties in one call.
+				[codeblocks][gdscript]
+				var formatter = DecimalFormatter.new()
+				
+				formatter.configure(
+					DecimalFormatter.FORMAT_MODE_AUTO,
+					DecimalFormatter.ABBREVIATION_TYPE_SHORT,
+					Decimal.from_float(1000.0),
+					2,
+					",",
+					".",
+					false
+				)
+				[/codeblocks][/gdscript]
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="format_mode" type="int" setter="set_format_mode" getter="get_format_mode" default="2">
+			The formatting mode to use. See [enum FormatMode] for options.
+		</member>
+		<member name="abbreviation_type" type="int" setter="set_abbreviation_type" getter="get_abbreviation_type" default="0">
+			The type of abbreviation to use. See [enum AbbreviationType] for options.
+		</member>
+		<member name="threshold" type="Vector4i" setter="set_threshold" getter="get_threshold" default="Vector4i(0, 0, 0, 0)">
+			When [member format_mode] is [constant FORMAT_MODE_AUTO], numbers ≤ threshold are shown in full format, otherwise abbreviated.
+		</member>
+		<member name="digits_thousands_separator_threshold" type="int" setter="set_digits_thousands_separator_threshold" getter="get_digits_thousands_separator_threshold" default="3">
+			Minimum number of digits required before thousands separators are added.
+		</member>
+		<member name="decimal_places" type="int" setter="set_decimal_places" getter="get_decimal_places" default="1">
+			Number of decimal places to show in abbreviated format.
+		</member>
+		<member name="thousands_separator" type="String" setter="set_thousands_separator" getter="get_thousands_separator" default="&quot;,&quot;">
+			The character(s) to use as thousands separator.
+		</member>
+		<member name="decimal_separator" type="String" setter="set_decimal_separator" getter="get_decimal_separator" default="&quot;.&quot;">
+			The character(s) to use as decimal separator.
+		</member>
+		<member name="show_abbreviation_space" type="bool" setter="set_show_abbreviation_space" getter="get_show_abbreviation_space" default="false">
+			Whether to add a space between the number and abbreviation (e.g., "1.2 M" vs "1.2M").
+		</member>
+	</members>
+	<constants>
+		<constant name="FORMAT_MODE_FULL" value="0" enum="FormatMode">
+			Always show full formatted number with separators.
+		</constant>
+		<constant name="FORMAT_MODE_ABBREVIATED" value="1" enum="FormatMode">
+			Always show abbreviated format (e.g., "1.2 M").
+		</constant>
+		<constant name="FORMAT_MODE_AUTO" value="2" enum="FormatMode">
+			Automatically choose between full and abbreviated based on [member threshold].
+		</constant>
+		<constant name="ABBREVIATION_TYPE_SHORT" value="0" enum="AbbreviationType">
+			Use short abbreviations (K, M, B, t, q, Q, s, S, o, n, d, U, D, T, Qt, Qd, Sd, St, O, N, v, c).
+		</constant>
+		<constant name="ABBREVIATION_TYPE_LONG" value="1" enum="AbbreviationType">
+			Use long names (Thousand, Million, Billion, Trillion, Quadrillion, etc.).
+		</constant>
+	</constants>
+</class>

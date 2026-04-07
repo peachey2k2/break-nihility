@@ -42,7 +42,7 @@ protected:
 #ifdef __ANDROID__
 	#define DECIMAL_DECL_CONST inline
 #else
-	#define DECIMAL_DECL_CONST constexpr const
+	#define DECIMAL_DECL_CONST inline const
 #endif
 
 private:
